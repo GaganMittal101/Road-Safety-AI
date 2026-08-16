@@ -1,0 +1,52 @@
+﻿Sl No,City,Overspeeding,Drunken Driving/Drugs use,Wrong side driving,Jumping red light,Using Mobile Phone,Others
+1,Agra,234,8,47,11,4,195
+2,Ahmedabad,515,2,7,11,0,0
+3,Allahabad (Prayagraj),182,56,139,61,93,51
+4,Amritsar,53,2,10,0,0,45
+5,Asansol Durgapur,149,0,1,0,0,203
+6,Aurangabad,0,0,4,0,0,199
+7,Bengaluru,873,9,5,3,0,25
+8,Bhopal,196,0,0,0,0,0
+9,Chandigarh,60,4,1,2,0,0
+10,Coimbatore,106,1,4,0,0,194
+11,Chennai,133,11,0,0,0,359
+12,Delhi,703,1,83,72,33,565
+13,Dhanbad,214,0,8,0,0,84
+14,Faridabad,263,0,6,0,0,0
+15,Ghaziabad,19,4,26,6,5,305
+16,Gwalior,157,1,151,0,0,35
+17,Hyderabad,288,12,8,0,3,24
+18,Indore,217,2,0,0,0,38
+19,Jabalpur,503,0,2,0,0,40
+20,Jaipur,770,7,9,3,3,57
+21,Jamshedpur,34,13,24,20,28,99
+22,Jodhpur,166,0,17,0,0,78
+23,Kannur,48,0,4,0,0,65
+24,Kanpur,201,163,178,19,54,23
+25,Khozikode,89,3,4,0,0,76
+26,Kochi,117,2,3,0,1,54
+27,Kolkata,14,2,3,3,0,137
+28,Kollam,124,0,3,0,0,84
+29,Kota,107,6,1,0,0,0
+30,Lucknow,149,98,95,43,93,90
+31,Ludhiana,210,1,7,0,0,184
+32,Madurai,89,5,24,3,0,143
+33,Mallapuram,200,1,24,0,0,84
+34,Meerut,121,42,31,4,2,195
+35,Mumbai,373,11,0,0,0,0
+36,Nagpur,22,6,15,0,0,265
+37,Nashik,202,0,5,1,0,0
+38,Patna,74,0,31,0,0,95
+39,Pune,272,6,1,0,0,72
+40,Raipur,475,0,2,0,0,30
+41,Rajkot,169,0,3,2,0,4
+42,Srinagar,56,0,0,0,0,0
+43,Surat,304,0,5,0,0,0
+44,Thiruvanthapuram,64,0,0,0,0,73
+45,Thrissur,143,0,5,2,2,79
+46,Tiruchirapalli,155,0,0,0,0,10
+47,Vadodra,166,1,7,0,0,25
+48,Varanasi,73,9,49,38,49,109
+49,Vijaywada city,370,0,3,0,0,0
+50,Vizaq,270,7,14,0,0,31
+,Total,"10,492",496,"1,069",304,370,"4,524"
