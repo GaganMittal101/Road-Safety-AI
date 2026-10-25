@@ -53,15 +53,8 @@ def get_model_bundle() -> Dict[str, object]:
         except Exception as exc:
             errors[name] = f"{type(exc).__name__}: {exc}"
 
-    scaler = None
-    scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
-    if os.path.exists(scaler_path):
-        try:
-            scaler = joblib.load(scaler_path)
-        except Exception:
-            errors["_scaler"] = "scaler.pkl could not be loaded."
-
-    models["_scaler"] = scaler
+    # setup_models.py trains on raw accident-count features; ignore any legacy scaler.
+    models["_scaler"] = None
     models["_errors"] = errors
     return models
 
@@ -150,26 +143,16 @@ def predict_national(df: pd.DataFrame) -> Tuple[float, float, float]:
     if missing:
         raise KeyError("Missing prediction features: " + ", ".join(missing))
 
-    X = (
-        states[FEATURES]
-        .apply(pd.to_numeric, errors="coerce")
-        .fillna(0)
-        .clip(lower=0)
-        .astype(float)
-    )
+    X = states[FEATURES].apply(pd.to_numeric, errors="coerce")
+    valid = X.notna().all(axis=1) & (X >= 0).all(axis=1)
+    X = X.loc[valid].astype(float)
+    if X.empty:
+        return (np.nan, np.nan, np.nan)
 
     models = get_model_bundle()
     scaler = models.get("_scaler")
+    # Match setup_models.py exactly: infer on raw count features, without scaling.
     model_input = X
-    if scaler is not None:
-        try:
-            model_input = pd.DataFrame(
-                scaler.transform(X),
-                columns=FEATURES,
-                index=X.index,
-            )
-        except Exception:
-            model_input = X
 
     totals = []
     for name in ("Random Forest", "XGBoost", "Gradient Boosting"):
@@ -232,6 +215,7 @@ def predict_risk(y2019, y2020, y2021, y2022) -> str:
 @st.cache_data(show_spinner=False)
 def get_model_metrics() -> pd.DataFrame:
     """Actual 5-fold CV metrics calculated on demand."""
+    from sklearn.dummy import DummyRegressor
     from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
     from sklearn.metrics import make_scorer, mean_absolute_error, mean_squared_error
     from sklearn.model_selection import KFold, cross_validate
@@ -249,8 +233,13 @@ def get_model_metrics() -> pd.DataFrame:
     if "State" in df.columns:
         df = df[df["State"].astype(str).str.casefold() != "all india"].copy()
 
-    X = df[FEATURES].apply(pd.to_numeric, errors="coerce").fillna(0).clip(lower=0).astype(float)
-    y = pd.to_numeric(df[TARGET], errors="coerce").fillna(0).clip(lower=0).astype(float)
+    X = df[FEATURES].apply(pd.to_numeric, errors="coerce")
+    y = pd.to_numeric(df[TARGET], errors="coerce")
+    valid = X.notna().all(axis=1) & y.notna() & (X >= 0).all(axis=1) & (y >= 0)
+    X = X.loc[valid].astype(float)
+    y = y.loc[valid].astype(float)
+    if len(X) < 2:
+        raise ValueError("At least two complete independent state/UT records are required.")
 
     if len(df) < 2:
         raise ValueError("At least 2 records are required.")
@@ -258,6 +247,7 @@ def get_model_metrics() -> pd.DataFrame:
     cv = KFold(n_splits=min(5, len(df)), shuffle=True, random_state=42)
 
     estimators = {
+        "Mean Baseline": DummyRegressor(strategy="mean"),
         "Random Forest": RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1),
         "Gradient Boosting": GradientBoostingRegressor(
             n_estimators=200, learning_rate=0.05, max_depth=2, random_state=42

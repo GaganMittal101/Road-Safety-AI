@@ -29,6 +29,24 @@ for path in (APP_DIR, ROOT_DIR):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+try:
+    from .core import (
+        build_scenario_forecast,
+        clean_accident_frame,
+        normalize_map_name as normalize_geo_name,
+        prepare_risk_scatter_frame,
+        prepare_training_xy,
+    )
+except ImportError:
+    # Streamlit executes app/app.py as a script, where relative imports are unavailable.
+    from core import (
+        build_scenario_forecast,
+        clean_accident_frame,
+        normalize_map_name as normalize_geo_name,
+        prepare_risk_scatter_frame,
+        prepare_training_xy,
+    )
+
 st.set_page_config(
     page_title="Road Safety AI",
     page_icon="🚦",
@@ -40,8 +58,6 @@ st.set_page_config(
 # SESSION STATE
 # ---------------------------------------------------------------------
 DEFAULTS = {
-    "authenticated": False,
-    "username": "",
     "analysis_state": "All India",
     "selected_page": "Dashboard",
     "custom_result": None,
@@ -59,17 +75,17 @@ st.markdown(
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root{
-    --bg:#080C14;
-    --panel:#111827;
-    --panel2:#151E2D;
-    --line:rgba(148,163,184,.16);
-    --text:#F8FAFC;
-    --muted:#94A3B8;
-    --blue:#38BDF8;
-    --violet:#818CF8;
-    --green:#10B981;
-    --amber:#F59E0B;
-    --red:#EF4444;
+    --bg:#F5E8D8;
+    --panel:#FFFCF5;
+    --panel2:#F0E1C8;
+    --line:rgba(29,42,68,.16);
+    --text:#1D2A44;
+    --muted:#59677D;
+    --blue:#0047AB;
+    --sun:#FFD447;
+    --green:#15803D;
+    --amber:#B45309;
+    --red:#C62828;
 }
 
 html, body, .stApp, [class*="css"]{
@@ -80,7 +96,7 @@ html, body, .stApp, [class*="css"]{
 h1,h2,h3,h4,h5{color:var(--text)!important;letter-spacing:-.025em;}
 
 section[data-testid="stSidebar"]{
-    background:linear-gradient(180deg,#0D121C,#090D14);
+    background:linear-gradient(180deg,#EAD9BC,#F5E8D8);
     border-right:1px solid var(--line);
 }
 section[data-testid="stSidebar"] > div{padding-top:1rem;}
@@ -89,98 +105,75 @@ div[data-baseweb="select"] > div,
 .stTextInput input,
 .stNumberInput input,
 .stTextArea textarea{
-    background:#182231!important;
-    color:#F8FAFC!important;
-    border:1px solid rgba(148,163,184,.17)!important;
+    background:#FFFCF5!important;
+    color:#1D2A44!important;
+    border:1px solid #D4C3A6!important;
     border-radius:14px!important;
 }
 div[data-baseweb="select"] > div:focus-within,
 .stTextInput input:focus,
 .stNumberInput input:focus{
     border-color:var(--blue)!important;
-    box-shadow:0 0 0 3px rgba(56,189,248,.12)!important;
+    box-shadow:0 0 0 3px rgba(0,71,171,.14)!important;
 }
-label{color:#94A3B8!important;font-weight:600!important;}
+label{color:#536079!important;font-weight:600!important;}
 
 .stButton > button,.stDownloadButton > button{
     border:0!important;
     border-radius:14px!important;
-    color:#fff!important;
+    color:#FFFFFF!important;
     font-weight:700!important;
-    background:linear-gradient(135deg,#38BDF8,#6366F1)!important;
-    box-shadow:0 8px 25px rgba(56,189,248,.16)!important;
+    background:linear-gradient(135deg,#0047AB,#1B62C5)!important;
+    box-shadow:0 8px 25px rgba(0,71,171,.18)!important;
     min-height:44px;
     transition:transform .12s ease, filter .12s ease;
 }
 .stButton > button:hover,.stDownloadButton > button:hover{
-    filter:brightness(1.08);
+    filter:brightness(1.06);
     transform:translateY(-1px);
+    outline:2px solid #FFD447!important;
+    outline-offset:1px;
 }
 
 [data-testid="stMetric"]{
-    background:linear-gradient(145deg,rgba(21,30,45,.94),rgba(15,23,42,.94))!important;
+    background:linear-gradient(145deg,#FFFCF5,#F4E6D1)!important;
     border:1px solid var(--line)!important;
     border-radius:18px!important;
     padding:1rem!important;
+    box-shadow:0 8px 24px rgba(71,53,22,.06);
 }
-[data-testid="stMetricLabel"]{color:#94A3B8!important;}
-[data-testid="stMetricValue"]{color:#F8FAFC!important;font-weight:800!important;}
+[data-testid="stMetricLabel"]{color:#59677D!important;}
+[data-testid="stMetricValue"]{color:#1D2A44!important;font-weight:800!important;}
 
 .card{
-    background:linear-gradient(145deg,rgba(21,30,45,.96),rgba(13,18,28,.96));
+    background:linear-gradient(145deg,#FFFCF5,#F1E2CA);
     border:1px solid var(--line);
     border-radius:22px;
     padding:20px;
-    box-shadow:0 18px 50px rgba(0,0,0,.18);
+    box-shadow:0 18px 50px rgba(71,53,22,.09);
 }
 .explain-card,.scenario-card,.reliability-card{
-    background:linear-gradient(145deg,rgba(30,41,59,.72),rgba(15,23,42,.72));
-    border:1px solid rgba(56,189,248,.16);
+    background:linear-gradient(145deg,#FFFCF5,#F8EDD9);
+    border:1px solid rgba(0,71,171,.16);
     border-radius:18px;
     padding:16px 18px;
-    box-shadow:0 10px 30px rgba(0,0,0,.18);
+    box-shadow:0 10px 30px rgba(71,53,22,.07);
+    color:#1D2A44;
 }
-.scenario-card{border-color:rgba(129,140,248,.22);}
+.scenario-card{border-color:rgba(255,212,71,.9);}
 .footer{
     margin-top:42px;padding:18px 0;border-top:1px solid var(--line);
-    text-align:center;color:#64748B;font-size:.82rem;
+    text-align:center;color:#687184;font-size:.82rem;
 }
-.login-wrap{
-    min-height:78vh;display:flex;justify-content:center;align-items:center;
-}
-.login-card{
-    width:min(500px,94vw);padding:38px;border-radius:30px;
-    background:linear-gradient(145deg,rgba(21,30,45,.98),rgba(10,15,24,.99));
-    border:1px solid rgba(148,163,184,.18);
-    box-shadow:0 35px 100px rgba(0,0,0,.55);
-    text-align:center;
-}
-.login-logo{
-    width:82px;height:82px;border-radius:25px;margin:0 auto 18px;
-    display:flex;align-items:center;justify-content:center;font-size:42px;
-    background:linear-gradient(135deg,#38BDF8,#6366F1);
-    box-shadow:0 18px 45px rgba(56,189,248,.22);
-}
-.login-title{
-    font-size:2.3rem;font-weight:800;
-    background:linear-gradient(135deg,#38BDF8,#818CF8);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-.login-subtitle{color:#94A3B8;margin:.4rem 0 1.3rem;}
-.login-security{
-    padding:11px 13px;border-radius:13px;
-    background:rgba(16,185,129,.07);
-    border:1px solid rgba(16,185,129,.16);
-    color:#94A3B8;font-size:.82rem;margin-bottom:18px;
-}
+
 .status{
     display:flex;align-items:center;gap:10px;padding:15px 17px;
-    border-radius:17px;background:rgba(21,30,45,.82);
+    border-radius:17px;background:rgba(255,252,245,.82);
     border:1px solid var(--line);
 }
-.status-ready{color:#10B981;}
-.status-warn{color:#F59E0B;}
-.status-error{color:#EF4444;}
+.status-ready{color:#15803D;}
+.status-warn{color:#B45309;}
+.status-error{color:#C62828;}
 .status-value{margin-left:auto;font-weight:700;}
 </style>
 """,
@@ -197,51 +190,14 @@ TARGET_COL = "2023 Accidents"
 
 @st.cache_data(show_spinner=False)
 def load_processed_data() -> pd.DataFrame:
-    """Load and validate the project dataset once."""
+    """Load the source data, remove embedded footnotes, and preserve missing values."""
     if not DATA_PATH.exists():
         raise FileNotFoundError(
             f"Dataset not found: {DATA_PATH}\n"
             "Expected file: data/processed/risk_analysis.csv"
         )
-
-    df = pd.read_csv(DATA_PATH)
-
-    if "State" not in df.columns:
-        raise ValueError("Dataset must contain a 'State' column.")
-
-    df["State"] = (
-        df["State"]
-        .astype(str)
-        .str.strip()
-        .replace({"": "Unknown", "nan": "Unknown"})
-    )
-
-    for col in ACCIDENT_COLS:
-        if col not in df.columns:
-            raise ValueError(f"Dataset is missing required column: {col}")
-        df[col] = (
-            pd.to_numeric(df[col], errors="coerce")
-            .fillna(0)
-            .clip(lower=0)
-        )
-
-    # Always recompute the displayed score from the current data.
-    # This prevents stale/hard-coded risk scores from being trusted.
-    max_2023 = float(df[TARGET_COL].max())
-    if max_2023 > 0:
-        df["Risk Score"] = (
-            df[TARGET_COL] / max_2023 * 100
-        ).clip(0, 100)
-    else:
-        df["Risk Score"] = 0.0
-
-    df["Risk Category"] = np.select(
-        [df["Risk Score"] >= 75, df["Risk Score"] >= 40],
-        ["High", "Medium"],
-        default="Low",
-    )
-
-    return df.reset_index(drop=True)
+    raw = pd.read_csv(DATA_PATH)
+    return clean_accident_frame(raw, ACCIDENT_COLS, TARGET_COL)
 
 
 @st.cache_data(show_spinner=False)
@@ -376,19 +332,22 @@ def load_saved_models() -> Dict[str, object]:
             model = joblib.load(path)
             if not hasattr(model, "predict"):
                 raise ValueError("Loaded object does not expose predict().")
+            feature_count = getattr(model, "n_features_in_", len(FEATURE_COLS))
+            if int(feature_count) != len(FEATURE_COLS):
+                raise ValueError(
+                    f"Expected {len(FEATURE_COLS)} features, found {feature_count}."
+                )
+            probe = pd.DataFrame([[0.0] * len(FEATURE_COLS)], columns=FEATURE_COLS)
+            probe_result = np.asarray(model.predict(probe), dtype=float).reshape(-1)
+            if not probe_result.size or not np.isfinite(probe_result[0]):
+                raise ValueError("Model smoke prediction was empty or non-finite.")
             models[name] = model
         except Exception as exc:
             errors[name] = f"{type(exc).__name__}: {exc}"
 
-    scaler = None
-    scaler_path = MODELS_DIR / "scaler.pkl"
-    if scaler_path.exists():
-        try:
-            scaler = joblib.load(scaler_path)
-        except Exception:
-            errors["_scaler"] = "scaler.pkl could not be loaded."
-
-    models["_scaler"] = scaler
+    # The supported training pipeline uses raw accident-count features.
+    # A legacy scaler.pkl is intentionally ignored to avoid inconsistent preprocessing.
+    models["_scaler"] = None
     models["_errors"] = errors
     return models
 
@@ -460,48 +419,42 @@ def predict_all(values: Iterable[float]) -> Dict[str, float]:
 
 
 def predict_national(df: pd.DataFrame) -> Dict[str, float]:
-    """Sum state-level predictions to create an All India prediction."""
-    states = df[
-        df["State"].astype(str).str.casefold() != "all india"
-    ].copy()
-
+    """Sum eligible state/UT model estimates; incomplete histories are excluded."""
+    states = df[df["State"].astype(str).str.casefold() != "all india"].copy()
     if states.empty:
         return {}
 
-    X = (
-        states[FEATURE_COLS]
-        .apply(pd.to_numeric, errors="coerce")
-        .fillna(0)
-        .clip(lower=0)
-        .astype(float)
-    )
+    X = states[FEATURE_COLS].apply(pd.to_numeric, errors="coerce")
+    valid = X.notna().all(axis=1) & (X >= 0).all(axis=1)
+    X = X.loc[valid].astype(float)
+    if X.empty:
+        return {}
 
     models = load_saved_models()
-    scaler = models.get("_scaler")
-    model_input = _scaled_input(X, scaler)
     output: Dict[str, float] = {}
-
     for name in MODEL_FILES:
         model = models.get(name)
         if model is None:
             continue
         try:
-            values = np.asarray(model.predict(model_input), dtype=float)
-            values = values[np.isfinite(values)]
-            if values.size:
-                output[name] = round(max(0.0, float(values.sum())))
+            values = np.asarray(model.predict(X), dtype=float).reshape(-1)
+            if values.size != len(X):
+                continue
+            if not np.isfinite(values).all():
+                continue
+            output[name] = int(round(float(np.clip(values, 0, None).sum())))
         except Exception:
             continue
-
     return output
 
 
 def state_prediction(df: pd.DataFrame, state: str, record: pd.Series) -> Dict[str, float]:
     if state == "All India":
         return predict_national(df)
-
-    values = [record.get(col, 0) for col in FEATURE_COLS]
-    return predict_all(values)
+    features = pd.to_numeric(record.reindex(FEATURE_COLS), errors="coerce")
+    if features.isna().any() or (features < 0).any():
+        return {}
+    return predict_all(features.tolist())
 
 
 def ensemble_summary(predictions: Dict[str, float]) -> dict:
@@ -558,18 +511,13 @@ def state_risk(record: pd.Series, state: str) -> Tuple[float, str]:
 
 
 def custom_risk(prediction: float, df: pd.DataFrame) -> Tuple[float, str]:
-    """
-    Relative indicator for custom inputs.
-
-    This is deliberately labelled as a relative risk indicator, because
-    custom inputs are user-created scenarios rather than observed state data.
-    """
-    maximum = float(df[TARGET_COL].max())
-    if maximum <= 0:
+    """Return a relative volume indicator for a valid custom-input estimate."""
+    predicted = safe_num(prediction)
+    reference = pd.to_numeric(df[TARGET_COL], errors="coerce").max(skipna=True)
+    if not np.isfinite(predicted) or not np.isfinite(reference) or reference <= 0:
         return np.nan, "No Data"
 
-    score = float(np.clip(prediction / maximum * 100.0, 0, 100))
-
+    score = float(np.clip(predicted / float(reference) * 100.0, 0, 100))
     if score >= 75:
         return score, "High"
     if score >= 40:
@@ -618,6 +566,11 @@ def db_count() -> int:
 
 
 def log_prediction(state: str, year: int, prediction: float, model: str):
+    prediction_value = safe_num(prediction)
+    if not np.isfinite(prediction_value) or prediction_value < 0:
+        raise ValueError("Only finite, non-negative predictions can be saved.")
+    if not str(state).strip() or not str(model).strip():
+        raise ValueError("State and model names are required to save a prediction.")
     init_db()
     conn = get_db_connection()
     conn.execute(
@@ -629,8 +582,8 @@ def log_prediction(state: str, year: int, prediction: float, model: str):
         (
             state,
             int(year),
-            float(prediction),
-            model,
+            float(prediction_value),
+            str(model),
             dt.datetime.now().isoformat(timespec="seconds"),
         ),
     )
@@ -653,7 +606,7 @@ def transparent_layout(fig):
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#CBD5E1"),
+        font=dict(color="#34425E"),
         margin=dict(l=20, r=20, t=55, b=20),
     )
     return fig
@@ -663,7 +616,7 @@ def trend_chart(record: pd.Series, state: str):
     import plotly.express as px
 
     years = list(range(2019, 2024))
-    values = [safe_num(record.get(f"{year} Accidents"), 0) for year in years]
+    values = [safe_num(record.get(f"{year} Accidents")) for year in years]
 
     data = pd.DataFrame({"Year": years, "Accidents": values})
 
@@ -755,27 +708,23 @@ def render_region_control(df: pd.DataFrame, page: str) -> Tuple[str, pd.Series]:
 # FORECAST
 # ---------------------------------------------------------------------
 def build_forecast(base_prediction: float, growth_percent: int):
-    """
-    2024–2035 scenario projection.
-
-    growth_percent is stored as an integer percentage, e.g. -5, 0, +5.
-    """
-    years = list(range(2024, 2036))
-    base = max(0.0, safe_num(base_prediction, 0.0))
-    rate = float(growth_percent) / 100.0
-
-    values = [base * ((1.0 + rate) ** i) for i in range(len(years))]
-
-    return pd.DataFrame(
-        {"Year": years, "Projected Accidents": np.rint(values).astype(int)}
-    )
+    """Build an illustrative scenario from the observed 2023 baseline."""
+    return build_scenario_forecast(base_prediction, growth_percent, start_year=2023, horizon=12)
 
 
-def render_forecast(state: str, ensemble_prediction: float):
+def render_forecast(state: str, observed_2023: float):
     import plotly.express as px
 
     st.title("📈 Scenario Forecast — 2024 to 2035")
-    st.caption("A transparent planning scenario based on the 2024 ensemble prediction.")
+    st.caption(
+        "An illustrative planning scenario based on the observed 2023 accident count. "
+        "It is not a trained future-year prediction."
+    )
+
+    baseline = safe_num(observed_2023, 0.0)
+    if not np.isfinite(baseline) or baseline < 0:
+        st.warning("A valid observed 2023 accident count is required for this scenario.")
+        return
 
     growth_percent = st.slider(
         "Annual growth assumption",
@@ -792,40 +741,38 @@ def render_forecast(state: str, ensemble_prediction: float):
         ),
     )
 
-    forecast_df = build_forecast(ensemble_prediction, growth_percent)
-
-    base = float(forecast_df.iloc[0]["Projected Accidents"])
+    forecast_df = build_forecast(baseline, growth_percent)
+    first_projection = float(forecast_df.iloc[0]["Projected Accidents"])
     final = float(forecast_df.iloc[-1]["Projected Accidents"])
     total = int(forecast_df["Projected Accidents"].sum())
-    overall_change = ((final / base) - 1) * 100 if base > 0 else 0.0
+    overall_change = ((final / baseline) - 1) * 100 if baseline > 0 else 0.0
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("2024 Base", f"{base:,.0f}")
-    c2.metric("2035 Projection", f"{final:,.0f}")
-    c3.metric("12-Year Total", f"{total:,.0f}")
-    c4.metric("Overall Change", f"{overall_change:+.1f}%")
+    c1.metric("2023 Observed Base", f"{baseline:,.0f}")
+    c2.metric("2035 Scenario", f"{final:,.0f}")
+    c3.metric("12-Year Projected Total", f"{total:,.0f}")
+    c4.metric("Change vs. 2023", f"{overall_change:+.1f}%")
 
     if growth_percent > 0:
         interpretation = f"the scenario assumes accidents increase by {growth_percent}% every year."
     elif growth_percent < 0:
         interpretation = f"the scenario assumes accidents decrease by {abs(growth_percent)}% every year."
     else:
-        interpretation = "the scenario assumes no annual change from the 2024 base."
+        interpretation = "the scenario assumes no annual change from the 2023 observed baseline."
 
     st.markdown(
         f"""
         <div class="scenario-card">
             <b>Scenario interpretation</b><br><br>
-            Starting from a 2024 ensemble estimate of
-            <b>{base:,.0f}</b> accidents, {html.escape(interpretation)}
+            Starting from the observed 2023 baseline of
+            <b>{baseline:,.0f}</b> accidents, {html.escape(interpretation)}
+            The 2024 scenario value is <b>{first_projection:,.0f}</b> and the
+            2035 scenario value is <b>{final:,.0f}</b>.
             <br><br>
-            Under this assumption, the 2035 estimate is
-            <b>{final:,.0f}</b> accidents.
-            <br><br>
-            <span style="color:#94A3B8">
-            ⚠️ This is a mathematical planning scenario. It is not a
-            guaranteed prediction and does not include future changes in
-            traffic, infrastructure, weather, enforcement or reporting.
+            <span style="color:#59677D">
+            ⚠️ This is a mathematical planning scenario, not a validated
+            prediction. It does not model future changes in traffic,
+            infrastructure, weather, enforcement, or reporting.
             </span>
         </div>
         """,
@@ -841,24 +788,23 @@ def render_forecast(state: str, ensemble_prediction: float):
     )
     chart.update_traces(line=dict(width=3), marker=dict(size=8))
     chart.update_layout(hovermode="x unified")
-    st.plotly_chart(transparent_layout(chart), use_container_width=True)
+    st.plotly_chart(transparent_layout(chart), width="stretch")
 
     with st.expander("ℹ️ How the scenario is calculated"):
         st.code(
-            "Projected Year = 2024 Base × (1 + annual growth)^(Year − 2024)",
+            "Projected Year = 2023 Observed Base × (1 + annual growth)^(Year − 2023)",
             language="text",
         )
         st.write(f"Annual assumption: **{growth_percent:+d}%**")
-        st.write("Horizon: **2024–2035 (12 years)**")
+        st.write("Base: observed 2023 count • Horizon: 2024–2035 (12 years)")
 
-    st.dataframe(forecast_df, use_container_width=True, hide_index=True)
-
+    st.dataframe(forecast_df, width="stretch", hide_index=True)
     st.download_button(
         "📥 Download Forecast CSV",
         forecast_df.to_csv(index=False),
         file_name=f"road_safety_forecast_{state.replace(' ', '_')}_2024_2035.csv",
         mime="text/csv",
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -910,17 +856,9 @@ STATE_COORDS = {
 
 
 def normalize_map_name(name: str) -> str:
-    value = str(name).strip().casefold().replace("&", "and")
+    """Use shared normalization for consistent CSV/GeoJSON joins."""
+    return normalize_geo_name(name)
 
-    aliases = {
-        "orissa": "odisha",
-        "uttaranchal": "uttarakhand",
-        "jammu and kashmir": "j & k #",
-        "andaman and nicobar islands": "andaman & nicobar islands",
-        "dadra and nagar haveli": "dadra & nagar haveli*",
-        "daman and diu": "daman & diu",
-    }
-    return aliases.get(value, value)
 
 
 def coords_for(state: str):
@@ -937,14 +875,22 @@ def coords_for(state: str):
 
 @st.cache_data(show_spinner=False)
 def load_geojson():
-    path = ASSETS_DIR / "india_states.geojson"
-    if not path.exists():
+    """Load India state boundaries using either historic filename spelling."""
+    candidates = (
+        ASSETS_DIR / "india_states.geojson",
+        ASSETS_DIR / "india_state.geojson",
+    )
+    path = next((candidate for candidate in candidates if candidate.is_file()), None)
+    if path is None:
         return None
 
     try:
         with path.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
+            geo = json.load(f)
+        if not isinstance(geo, dict) or not isinstance(geo.get("features"), list):
+            return None
+        return geo
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
         return None
 
 
@@ -963,16 +909,20 @@ def render_risk_map(df: pd.DataFrame):
     from streamlit_folium import st_folium
 
     st.title("🗺️ India Risk Intelligence Map")
-    st.caption("State/UT-level accident risk using real geographic locations and risk categories.")
+    st.caption(
+        "State/UT relative accident-count categories based on supplied 2023 data. "
+        "These are not exposure-adjusted crash rates."
+    )
 
     data = df[df["State"].astype(str).str.casefold() != "all india"].copy()
     categories = data["Risk Category"].astype(str)
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Regions Mapped", len(data))
-    c2.metric("🔴 High Risk", int((categories == "High").sum()))
-    c3.metric("🟠 Medium Risk", int((categories == "Medium").sum()))
-    c4.metric("🟢 Low Risk", int((categories == "Low").sum()))
+    c2.metric("🔴 High", int((categories == "High").sum()))
+    c3.metric("🟠 Medium", int((categories == "Medium").sum()))
+    c4.metric("🟢 Low", int((categories == "Low").sum()))
+    c5.metric("⚪ No Data", int((categories == "No Data").sum()))
 
     risk_colors = {
         "High": "#EF4444",
@@ -1096,6 +1046,9 @@ def render_shap(record: pd.Series, state: str):
             "The All India prediction is an aggregation of state-level predictions."
         )
         return
+    if any(pd.isna(record.get(col)) for col in FEATURE_COLS):
+        st.info("SHAP is unavailable because this region is missing one or more historical model inputs.")
+        return
 
     if not st.button("🔍 Explain Why This Prediction Was Made", key=f"shap_{state}"):
         return
@@ -1112,7 +1065,7 @@ def render_shap(record: pd.Series, state: str):
 
         fig, shap_df, summary = result
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         strongest = shap_df.iloc[shap_df["AbsContribution"].argmax()]
         direction = "increased" if strongest["Contribution"] >= 0 else "decreased"
@@ -1147,49 +1100,37 @@ historical year caused the accidents.
 # ---------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
 def calculate_model_metrics(data_signature: Tuple) -> pd.DataFrame:
-    """
-    Calculate actual 5-fold CV metrics on demand.
-
-    cross_validate is used rather than computing metrics from
-    cross_val_predict, since scikit-learn notes that cross_val_predict
-    predictions are primarily diagnostic and can give misleading
-    generalization metrics.
-    """
+    """Cross-validate models on complete independent state/UT rows, including a mean baseline."""
     del data_signature
 
+    from sklearn.dummy import DummyRegressor
     from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
     from sklearn.metrics import make_scorer, mean_absolute_error, mean_squared_error
     from sklearn.model_selection import KFold, cross_validate
 
     df = load_processed_data()
+    X, y, eligible, excluded = prepare_training_xy(df, FEATURE_COLS, TARGET_COL)
+    if len(X) < 5:
+        raise ValueError(
+            f"At least five complete state/UT records are required; found {len(X)}. "
+            f"Excluded due to incomplete data: {len(excluded)}."
+        )
 
-    X = (
-        df[FEATURE_COLS]
-        .apply(pd.to_numeric, errors="coerce")
-        .fillna(0)
-        .clip(lower=0)
-        .astype(float)
-    )
-    y = pd.to_numeric(df[TARGET_COL], errors="coerce").fillna(0).clip(lower=0).astype(float)
-
-    n_splits = max(2, len(df)) if len(df) < 5 else 5
-
+    n_splits = min(5, max(2, len(X) // 2))
     cv = KFold(n_splits=n_splits, shuffle=True, random_state=42)
-
     estimators = {
+        "Mean Baseline": DummyRegressor(strategy="mean"),
         "Random Forest": RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1),
         "Gradient Boosting": GradientBoostingRegressor(
-            n_estimators=200, learning_rate=0.03, max_depth=2, random_state=42
+            n_estimators=200, learning_rate=0.05, max_depth=2, random_state=42
         ),
     }
-
     try:
         from xgboost import XGBRegressor
-
         estimators["XGBoost"] = XGBRegressor(
             n_estimators=250,
             max_depth=3,
-            learning_rate=0.03,
+            learning_rate=0.05,
             subsample=0.90,
             colsample_bytree=0.90,
             objective="reg:squarederror",
@@ -1208,29 +1149,27 @@ def calculate_model_metrics(data_signature: Tuple) -> pd.DataFrame:
             greater_is_better=False,
         ),
     }
-
     rows = []
-
     for name, estimator in estimators.items():
         result = cross_validate(
-            estimator, X, y, cv=cv, scoring=scoring, n_jobs=1, return_train_score=False
+            estimator, X, y, cv=cv, scoring=scoring, n_jobs=1,
+            return_train_score=False, error_score="raise",
         )
-
         mae_scores = -result["test_MAE"]
         mse_scores = -result["test_MSE"]
         rmse_scores = -result["test_RMSE"]
-
         rows.append({
             "Model": name,
-            "R²": float(result["test_R2"].mean()),
-            "R² Std": float(result["test_R2"].std()),
+            "R²": float(np.nanmean(result["test_R2"])),
+            "R² Std": float(np.nanstd(result["test_R2"])),
             "MAE": float(mae_scores.mean()),
             "MAE Std": float(mae_scores.std()),
             "RMSE": float(rmse_scores.mean()),
             "RMSE Std": float(rmse_scores.std()),
             "MSE": float(mse_scores.mean()),
+            "Validation Rows": int(len(X)),
+            "CV Folds": int(n_splits),
         })
-
     return pd.DataFrame(rows).set_index("Model")
 
 
@@ -1239,7 +1178,8 @@ def render_model_evaluation(df: pd.DataFrame):
 
     st.title("📊 Model Performance & Reliability")
     st.caption(
-        "Actual 5-fold cross-validation on the project dataset. "
+        "Cross-validation uses complete independent state/UT rows and includes a mean baseline. "
+        "This tests region-level generalization, not future-year forecasting. "
         "Higher R² is better; lower MAE/RMSE/MSE are better."
     )
 
@@ -1254,6 +1194,8 @@ def render_model_evaluation(df: pd.DataFrame):
     if metrics.empty:
         st.warning("No evaluation results are available.")
         return
+
+    st.info("Compare each ML model with Mean Baseline. With this small historical dataset, cross-validation scores are preliminary and should not be described as production accuracy.")
 
     best_r2 = metrics["R²"].idxmax()
     best_mae = metrics["MAE"].idxmin()
@@ -1276,7 +1218,7 @@ def render_model_evaluation(df: pd.DataFrame):
             "RMSE Std": "{:,.0f}",
             "MSE": "{:,.0f}",
         }),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -1287,14 +1229,14 @@ def render_model_evaluation(df: pd.DataFrame):
             go.Bar(x=metrics.index, y=metrics["R²"], text=metrics["R²"].round(3), textposition="auto")
         )
         fig.update_layout(title="R² — Higher is Better", yaxis_title="R²")
-        st.plotly_chart(transparent_layout(fig), use_container_width=True)
+        st.plotly_chart(transparent_layout(fig), width="stretch")
 
     with b:
         fig = go.Figure()
         fig.add_trace(go.Bar(x=metrics.index, y=metrics["MAE"], name="MAE"))
         fig.add_trace(go.Bar(x=metrics.index, y=metrics["RMSE"], name="RMSE"))
         fig.update_layout(title="Error Metrics — Lower is Better", barmode="group", yaxis_title="Error")
-        st.plotly_chart(transparent_layout(fig), use_container_width=True)
+        st.plotly_chart(transparent_layout(fig), width="stretch")
 
     st.markdown(
         """
@@ -1348,15 +1290,15 @@ def build_pdf_bytes(
 
     title = ParagraphStyle(
         "LuxuryTitle", parent=styles["Title"], fontSize=22, leading=26,
-        textColor=colors.HexColor("#1D4ED8"), spaceAfter=8,
+        textColor=colors.HexColor("#0047AB"), spaceAfter=8,
     )
     heading = ParagraphStyle(
         "LuxuryHeading", parent=styles["Heading2"], fontSize=14, leading=18,
-        textColor=colors.HexColor("#1E3A8A"), spaceBefore=8, spaceAfter=6,
+        textColor=colors.HexColor("#0047AB"), spaceBefore=8, spaceAfter=6,
     )
     body = ParagraphStyle(
         "LuxuryBody", parent=styles["BodyText"], fontSize=9.5, leading=14,
-        textColor=colors.HexColor("#334155"),
+        textColor=colors.HexColor("#26334B"),
     )
 
     story = [
@@ -1386,20 +1328,20 @@ def build_pdf_bytes(
 
     history = [["Year", "Accidents"]]
     for year in range(2019, 2024):
-        history.append([str(year), f"{safe_num(record.get(f'{year} Accidents'), 0):,.0f}"])
+        history.append([str(year), fmt_int(record.get(f"{year} Accidents"))])
 
     table = Table(history, colWidths=[45 * mm, 60 * mm])
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1D4ED8")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0047AB")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#D8C6A7")),
         ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#FFFCF5"), colors.HexColor("#F5E8D8")]),
     ]))
 
     story.extend([table, Spacer(1, 8)])
 
-    story.append(Paragraph("3. 2024 Model Predictions", heading))
+    story.append(Paragraph("3. 2023 Model Estimates (model target year)", heading))
 
     prediction_rows = [["Model", "Estimated Accidents"]]
     for name, value in predictions.items():
@@ -1411,20 +1353,20 @@ def build_pdf_bytes(
 
     pt = Table(prediction_rows, colWidths=[80 * mm, 55 * mm])
     pt.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F766E")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0047AB")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#D8C6A7")),
         ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#FFFCF5"), colors.HexColor("#F5E8D8")]),
     ]))
 
     story.extend([pt, Spacer(1, 8)])
 
     story.append(Paragraph("4. 2024–2035 Scenario Projection", heading))
     story.append(Paragraph(
-        "The projection applies the annual growth assumption selected "
-        "in the application. It is a mathematical planning scenario, "
-        "not a guaranteed or official government forecast.",
+        "This report uses the observed 2023 accident count as its baseline "
+        "and assumes 0% annual growth for the 2024–2035 scenario. It is a "
+        "mathematical planning scenario, not an official government forecast.",
         body,
     ))
 
@@ -1434,9 +1376,9 @@ def build_pdf_bytes(
 
     ft = Table(forecast_rows, colWidths=[45 * mm, 70 * mm])
     ft.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#7C3AED")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#CBD5E1")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FFD447")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#1D2A44")),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#D8C6A7")),
         ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
         ("FONTSIZE", (0, 0), (-1, -1), 8),
     ]))
@@ -1454,9 +1396,9 @@ def build_pdf_bytes(
 
         mt = Table(metric_rows, colWidths=[45 * mm, 20 * mm, 28 * mm, 28 * mm, 30 * mm])
         mt.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#334155")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0047AB")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#CBD5E1")),
+            ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#D8C6A7")),
             ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
             ("FONTSIZE", (0, 0), (-1, -1), 8),
         ]))
@@ -1473,8 +1415,8 @@ def build_pdf_bytes(
         Paragraph(
             "The system uses historical state/UT accident counts from "
             "the supplied project dataset. The machine-learning models "
-            "estimate the next-year accident count from 2019–2022 "
-            "features. Risk categories are relative indicators derived "
+            "use the 2019–2022 accident counts as features and 2023 as the target year. "
+            "Risk categories are relative indicators derived "
             "from the supplied state-level data. The application does "
             "not use live traffic, weather, road-condition or real-time "
             "incident feeds.",
@@ -1508,7 +1450,7 @@ def render_reports(
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Region", state)
     c2.metric("2023 Accidents", fmt_int(record.get("2023 Accidents")))
-    c3.metric("2024 Ensemble", fmt_int(ensemble_prediction))
+    c3.metric("2023 Model Estimate", fmt_int(ensemble_prediction))
     c4.metric("Risk", risk_badge(risk_level))
 
     st.markdown(
@@ -1531,9 +1473,9 @@ claim.
     except Exception:
         metrics = None
 
-    forecast_df = build_forecast(ensemble_prediction, 0)
+    forecast_df = build_forecast(safe_num(record.get("2023 Accidents"), 0.0), 0)
 
-    if st.button("📥 Generate Complete PDF Report", use_container_width=True):
+    if st.button("📥 Generate Complete PDF Report", width="stretch"):
         try:
             with st.spinner("Building professional PDF..."):
                 pdf_bytes = build_pdf_bytes(
@@ -1549,7 +1491,7 @@ claim.
                 pdf_bytes,
                 file_name=filename,
                 mime="application/pdf",
-                use_container_width=True,
+                width="stretch",
             )
 
         except Exception as exc:
@@ -1558,7 +1500,7 @@ claim.
     st.subheader("📋 Report Contents")
     st.write(
         "✓ Executive summary • ✓ 2019–2023 historical data • "
-        "✓ Three-model predictions • ✓ Ensemble estimate • "
+        "✓ 2023 model estimates • ✓ Ensemble comparison • "
         "✓ Risk assessment • ✓ 2024–2035 scenario • "
         "✓ Model validation metrics • ✓ Recommendations • "
         "✓ Methodology & limitations"
@@ -1586,7 +1528,7 @@ def render_custom_prediction(df: pd.DataFrame):
             y2020 = st.number_input("2020 Accidents", min_value=0.0, max_value=1_000_000.0, value=1200.0, step=50.0)
             y2022 = st.number_input("2022 Accidents", min_value=0.0, max_value=1_000_000.0, value=1500.0, step=50.0)
 
-        submitted = st.form_submit_button("🚀 Run Prediction", use_container_width=True)
+        submitted = st.form_submit_button("🚀 Run Prediction", width="stretch")
 
     if submitted:
         try:
@@ -1640,7 +1582,7 @@ def render_custom_prediction(df: pd.DataFrame):
 <b>Model spread:</b> {summary['spread']:,.0f}<br>
 <b>Agreement indicator:</b> {summary['agreement']:.1f}%
 <br><br>
-<span style="color:#94A3B8">
+<span style="color:#59677D">
 The agreement indicator measures how close the available models are
 to each other. It is not a probability of prediction accuracy.
 </span>
@@ -1651,14 +1593,16 @@ to each other. It is not a probability of prediction accuracy.
 
     with st.expander("ℹ️ Why does this custom result change?"):
         st.write(
-            "The four values you enter become the model features. "
-            "Changing those values changes the model input and therefore "
-            "can change the predicted 2023/next-year accident estimate."
+            "The four values you enter become the model features for the 2023 target. "
+            "Changing those values changes the input and can change the estimate."
         )
 
-    if st.button("💾 Save Custom Prediction", use_container_width=False):
-        log_prediction("Custom Input", 2024, summary["average"], "Ensemble Average")
-        st.success("Custom prediction saved to SQLite.")
+    if np.isfinite(summary["average"]):
+        if st.button("💾 Save Custom Prediction", width="content"):
+            log_prediction("Custom Input", 2023, summary["average"], "Ensemble Average")
+            st.success("Custom prediction saved to SQLite.")
+    else:
+        st.warning("No valid model prediction is available to save.")
 
 
 # ---------------------------------------------------------------------
@@ -1666,16 +1610,17 @@ to each other. It is not a probability of prediction accuracy.
 # ---------------------------------------------------------------------
 def render_settings(df: pd.DataFrame):
     st.title("⚙️ System Settings")
-    st.caption("Essential application health and database controls — no state selector.")
+    st.caption("Application health and database controls. This local demo opens directly without authentication.")
 
     models = load_saved_models()
     ready = [name for name in MODEL_FILES if models.get(name) is not None]
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Dataset Records", len(df))
+    c1.metric("State/UT Records", int((df["State"].astype(str).str.casefold() != "all india").sum()))
     c2.metric("Models Ready", f"{len(ready)}/3")
     c3.metric("Prediction Logs", db_count())
-    c4.metric("System Status", "Operational" if ready else "Attention")
+    system_status = "Operational" if len(ready) == len(MODEL_FILES) else ("Partial" if ready else "Attention")
+    c4.metric("System Status", system_status)
 
     st.markdown("---")
     st.subheader("🤖 Model Status")
@@ -1715,7 +1660,7 @@ def render_settings(df: pd.DataFrame):
     st.write(f"Stored prediction logs: **{db_count()}**")
 
     if not st.session_state.clear_db_confirm:
-        if st.button("🗑️ Clear Prediction Logs", use_container_width=False):
+        if st.button("🗑️ Clear Prediction Logs", width="content"):
             st.session_state.clear_db_confirm = True
             st.rerun()
     else:
@@ -1732,6 +1677,21 @@ def render_settings(df: pd.DataFrame):
         if b.button("Cancel"):
             st.session_state.clear_db_confirm = False
             st.rerun()
+
+    metadata_path = MODELS_DIR / "training_metadata.json"
+    if metadata_path.is_file():
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            st.markdown("---")
+            st.subheader("🧾 Model Training Metadata")
+            st.caption(
+                f"Target: {metadata.get('target', 'unknown')} • "
+                f"Complete training rows: {metadata.get('training_rows', 'unknown')} • "
+                f"Created: {metadata.get('created_at_utc', 'unknown')}"
+            )
+            st.caption(str(metadata.get("validation_note", "")))
+        except (OSError, json.JSONDecodeError):
+            st.warning("Model metadata file exists but could not be read.")
 
     st.markdown("---")
     st.subheader("📁 Data & System Information")
@@ -1765,56 +1725,6 @@ def render_settings(df: pd.DataFrame):
 
 
 # ---------------------------------------------------------------------
-# LOGIN
-# ---------------------------------------------------------------------
-def login_page():
-    st.markdown(
-        """
-<div class="login-wrap">
-    <div class="login-card">
-        <div class="login-logo">🚦</div>
-        <div class="login-title">Road Safety AI</div>
-        <div class="login-subtitle">
-            Intelligent Accident Analytics
-        </div>
-        <div class="login-security">
-            🛡️ <b>Secure Admin Workspace</b>
-            &nbsp; • &nbsp; Protected Access
-        </div>
-    </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-    left, center, right = st.columns([1, 1.15, 1])
-
-    with center:
-        username = st.text_input("Username", value="admin", key="login_user")
-        password = st.text_input("Password", type="password", key="login_password", placeholder="Enter password")
-
-        if st.button("Sign in  →", use_container_width=True):
-            if username.strip() == "admin" and password == "admin123":
-                st.session_state.authenticated = True
-                st.session_state.username = "Gagan"
-                st.rerun()
-            else:
-                st.error("Invalid username or password.")
-
-        st.caption("Demo access: admin / admin123")
-
-        st.markdown(
-            """
-<div style="text-align:center;color:#64748B;
-font-size:.78rem;margin-top:18px">
-AI-powered road-safety intelligence platform
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
-
-# ---------------------------------------------------------------------
 # SIDEBAR
 # ---------------------------------------------------------------------
 def render_sidebar(df: pd.DataFrame) -> str:
@@ -1829,10 +1739,10 @@ def render_sidebar(df: pd.DataFrame) -> str:
             """
 <div style="text-align:center;padding:8px 0 18px">
     <div style="font-size:42px">🚦</div>
-    <div style="font-size:20px;font-weight:800;color:#F8FAFC">
+    <div style="font-size:20px;font-weight:800;color:#1D2A44">
         Road Safety AI
     </div>
-    <div style="color:#64748B;font-size:12px">
+    <div style="color:#687184;font-size:12px">
         Intelligent Analytics
     </div>
 </div>
@@ -1840,12 +1750,7 @@ def render_sidebar(df: pd.DataFrame) -> str:
             unsafe_allow_html=True,
         )
 
-        st.success("● GAGAN • ADMIN")
-
-        if st.button("🚪 Logout", use_container_width=True):
-            st.session_state.authenticated = False
-            st.session_state.username = ""
-            st.rerun()
+        st.caption("Road-safety analytics workspace")
 
         st.markdown("---")
 
@@ -1874,18 +1779,18 @@ def render_sidebar(df: pd.DataFrame) -> str:
             default_index=0,
             styles={
                 "container": {"padding": "0!important", "background-color": "transparent"},
-                "icon": {"color": "#38BDF8", "font-size": "18px"},
+                "icon": {"color": "#0047AB", "font-size": "18px"},
                 "nav-link": {
                     "font-size": "14px",
                     "text-align": "left",
                     "margin": "4px 0",
                     "padding": "11px 15px",
                     "border-radius": "13px",
-                    "color": "#94A3B8",
+                    "color": "#536079",
                 },
                 "nav-link-selected": {
-                    "background": "linear-gradient(135deg,rgba(56,189,248,.15),rgba(99,102,241,.15))",
-                    "color": "white",
+                    "background": "linear-gradient(135deg,rgba(0,71,171,.12),rgba(255,212,71,.38))",
+                    "color": "#0047AB",
                     "font-weight": "700",
                 },
             },
@@ -1926,23 +1831,23 @@ def main_app():
 display:flex;
 justify-content:space-between;
 align-items:center;
-border-bottom:1px solid rgba(148,163,184,.12);
+border-bottom:1px solid rgba(29,42,68,.16);
 padding-bottom:16px;
 margin-bottom:22px;">
     <div>
         <span style="font-size:28px">🚦</span>
-        <span style="font-size:26px;font-weight:800;color:#F8FAFC">
+        <span style="font-size:26px;font-weight:800;color:#1D2A44">
             Road Safety AI
         </span>
     </div>
-    <div style="color:#64748B">
+    <div style="color:#687184">
         {now.strftime('%B %d, %Y')}
         &nbsp;
         <span style="
-        background:#101C2A;
+        background:#FFD447;
         padding:7px 12px;
         border-radius:20px;
-        color:#94A3B8">
+        color:#1D2A44">
             ◷ {now.strftime('%H:%M:%S')}
         </span>
     </div>
@@ -1957,7 +1862,7 @@ margin-bottom:22px;">
         render_settings(df)
 
         st.markdown(
-            "<div class='footer'>🚦 Road Safety AI | Machine Learning Project | © 2026 | by <b style='color:#94A3B8'>Gagan Mittal</b></div>",
+            "<div class='footer'>🚦 Road Safety AI | Machine Learning Project | © 2026 | by <b style='color:#59677D'>Gagan Mittal</b></div>",
             unsafe_allow_html=True,
         )
         return
@@ -1976,6 +1881,25 @@ margin-bottom:22px;">
     summary = ensemble_summary(predictions)
     ensemble_prediction = summary["average"]
 
+    # Be explicit when the national total omits regions whose historical inputs are incomplete.
+    if page in {"Dashboard", "Prediction", "Reports"} and state == "All India":
+        regional = df[df["State"].astype(str).str.casefold() != "all india"]
+        features = regional[FEATURE_COLS].apply(pd.to_numeric, errors="coerce")
+        eligible_mask = features.notna().all(axis=1) & (features >= 0).all(axis=1)
+        omitted = regional.loc[~eligible_mask, "State"].astype(str).tolist()
+        if omitted:
+            st.info(
+                f"National model estimate coverage: {int(eligible_mask.sum())}/{len(regional)} "
+                "regions have complete 2019–2022 inputs. Regions omitted because of missing "
+                f"historical values: {', '.join(omitted)}. This is a partial-coverage estimate."
+            )
+    elif page in {"Dashboard", "Prediction", "Reports"} and state != "All India":
+        if any(pd.isna(record.get(col)) for col in FEATURE_COLS):
+            st.info("A model estimate is unavailable for this region because one or more historical inputs are missing.")
+
+    if not predictions and page in {"Dashboard", "Prediction", "Reports"}:
+        st.warning("No saved model returned a valid prediction. Open Settings to inspect model status.")
+
     risk_score, risk_level = state_risk(record, state)
 
     # ---------------------------------------------------------------
@@ -1984,13 +1908,15 @@ margin-bottom:22px;">
     if page == "Dashboard":
         st.title("🚦 AI-Powered Road Safety Dashboard")
         st.caption(f"Decision-support overview for **{state}**")
+        st.caption("Risk levels are relative accident-count categories; they are not crash rates adjusted for traffic exposure.")
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Region", state)
         c2.metric("2023 Accidents", fmt_int(record.get("2023 Accidents")))
 
         if state == "All India":
-            c3.metric("Coverage", f"{len(df)} regions")
+            state_ut_count = int((df["State"].astype(str).str.casefold() != "all india").sum())
+            c3.metric("Coverage", f"{state_ut_count} states / UTs")
             c4.metric("Risk", "National Overview")
         else:
             c3.metric("Risk Score", fmt_score(risk_score))
@@ -2000,10 +1926,10 @@ margin-bottom:22px;">
 
         with a:
             st.subheader("📈 Historical Accident Trend")
-            st.plotly_chart(trend_chart(record, state), use_container_width=True)
+            st.plotly_chart(trend_chart(record, state), width="stretch")
 
         with b:
-            st.subheader("🔮 2024 Model Estimates")
+            st.subheader("🔮 2023 Model Estimates")
 
             for name in MODEL_FILES:
                 value = predictions.get(name)
@@ -2018,7 +1944,7 @@ margin-bottom:22px;">
 <div class="reliability-card">
 <b>Model agreement:</b> {summary['agreement']:.1f}%<br>
 <b>Model range:</b> {summary['minimum']:,.0f} – {summary['maximum']:,.0f}<br>
-<span style="color:#94A3B8">
+<span style="color:#59677D">
 Agreement is a consistency indicator, not a probability of accuracy.
 </span>
 </div>
@@ -2030,35 +1956,41 @@ Agreement is a consistency indicator, not a probability of accuracy.
 
         with a:
             st.subheader("🏆 State Risk Ranking")
-            st.dataframe(ranking_table(df), use_container_width=True, height=330, hide_index=True)
+            st.dataframe(ranking_table(df), width="stretch", height=330, hide_index=True)
 
         with b:
             import plotly.express as px
 
-            x = df[df["State"].astype(str).str.casefold() != "all india"].copy()
-
-            fig = px.scatter(
-                x,
-                x="2023 Accidents",
-                y="Risk Score",
-                color="Risk Category",
-                hover_name="State",
-                size="2023 Accidents",
-                size_max=30,
-                color_discrete_map={"High": "#EF4444", "Medium": "#F59E0B", "Low": "#10B981"},
-                title="Risk vs Accident Volume",
-            )
-
-            st.plotly_chart(transparent_layout(fig), use_container_width=True)
+            # Missing accident counts are legitimate missing data, not zero.
+            # Filter only the chart input so Plotly never receives NaN/inf bubble sizes.
+            x = prepare_risk_scatter_frame(df)
+            if x.empty:
+                st.info(
+                    "The Risk vs Accident Volume chart needs finite 2023 accident counts "
+                    "and risk scores. No eligible rows are available in this dataset."
+                )
+            else:
+                fig = px.scatter(
+                    x,
+                    x="2023 Accidents",
+                    y="Risk Score",
+                    color="Risk Category",
+                    hover_name="State",
+                    size="2023 Accidents",
+                    size_max=30,
+                    color_discrete_map={"High": "#EF4444", "Medium": "#F59E0B", "Low": "#10B981", "No Data": "#94A3B8"},
+                    title="Risk vs Accident Volume",
+                )
+                st.plotly_chart(transparent_layout(fig), width="stretch")
 
         st.subheader("📊 Historical Correlation")
         st.plotly_chart(
             correlation_chart(df[df["State"].astype(str).str.casefold() != "all india"]),
-            use_container_width=True,
+            width="stretch",
         )
 
         with st.expander("📂 View Complete Dataset"):
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            st.dataframe(df, width="stretch", hide_index=True)
 
     # ---------------------------------------------------------------
     # PREDICTION
@@ -2066,7 +1998,7 @@ Agreement is a consistency indicator, not a probability of accuracy.
     elif page == "Prediction":
         st.title("🤖 AI Prediction Engine")
         st.caption(
-            f"Estimated next-year accident count for **{state}** "
+            f"Estimated 2023 accident count for **{state}** "
             "from historical 2019–2022 accident features."
         )
 
@@ -2085,7 +2017,7 @@ Agreement is a consistency indicator, not a probability of accuracy.
 {summary['minimum']:,.0f} – {summary['maximum']:,.0f}<br><br>
 <b>Model spread:</b> {summary['spread']:,.0f} accidents<br>
 <b>Agreement indicator:</b> {summary['agreement']:.1f}%<br><br>
-<span style="color:#94A3B8">
+<span style="color:#59677D">
 This range reflects disagreement among the available models. It is
 not a statistical confidence interval.
 </span>
@@ -2115,10 +2047,9 @@ not a statistical confidence interval.
             """
 <div class="explain-card">
 <b>What does this prediction mean?</b><br><br>
-The models learn patterns from the four historical inputs
-(2019–2022) and estimate the next-year accident count.
-The output is an analytical estimate — not a guaranteed number
-and not a real-time accident warning.
+The models use four historical inputs (2019–2022) to estimate the
+2023 target-year accident count. The output is an analytical estimate,
+not a guaranteed number or a real-time accident warning.
 </div>
 """,
             unsafe_allow_html=True,
@@ -2132,8 +2063,8 @@ and not a real-time accident warning.
             st.write(f"• {item}")
 
         if np.isfinite(ensemble_prediction):
-            if st.button("💾 Save Ensemble Prediction", use_container_width=False):
-                log_prediction(state, 2024, ensemble_prediction, "Ensemble Average")
+            if st.button("💾 Save Ensemble Prediction", width="content"):
+                log_prediction(state, 2023, ensemble_prediction, "Ensemble Average")
                 st.success("Prediction logged successfully.")
 
         st.warning(
@@ -2146,10 +2077,11 @@ and not a real-time accident warning.
     # FORECAST
     # ---------------------------------------------------------------
     elif page == "Forecast":
-        if not np.isfinite(ensemble_prediction):
-            st.warning("A valid ensemble prediction is required before the scenario forecast can be generated.")
+        observed_2023 = safe_num(record.get("2023 Accidents"))
+        if not np.isfinite(observed_2023):
+            st.warning("A valid observed 2023 accident count is required for the scenario forecast.")
         else:
-            render_forecast(state, ensemble_prediction)
+            render_forecast(state, observed_2023)
 
     # ---------------------------------------------------------------
     # RISK MAP
@@ -2161,8 +2093,11 @@ and not a real-time accident warning.
     # REPORTS
     # ---------------------------------------------------------------
     elif page == "Reports":
+        observed_2023_for_report = safe_num(record.get("2023 Accidents"))
         if not np.isfinite(ensemble_prediction):
-            st.warning("A valid prediction is required before generating a report.")
+            st.warning("A valid model estimate is required before generating a report.")
+        elif not np.isfinite(observed_2023_for_report):
+            st.warning("A report cannot be generated for this region because the observed 2023 baseline is missing.")
         else:
             render_reports(state, record, predictions, risk_score, risk_level, ensemble_prediction, df)
 
@@ -2183,7 +2118,7 @@ and not a real-time accident warning.
 <div class="footer">
 🚦 Road Safety AI &nbsp;|&nbsp; Machine Learning Project
 &nbsp;|&nbsp; © 2026 &nbsp;|&nbsp;
-by <b style="color:#94A3B8">Gagan Mittal</b>
+by <b style="color:#59677D">Gagan Mittal</b>
 </div>
 """,
         unsafe_allow_html=True,
@@ -2193,7 +2128,4 @@ by <b style="color:#94A3B8">Gagan Mittal</b>
 # ---------------------------------------------------------------------
 # ENTRY
 # ---------------------------------------------------------------------
-if st.session_state.authenticated:
-    main_app()
-else:
-    login_page()
+main_app()
