@@ -1,3 +1,0 @@
-# Additional tools for project development (the main requirements.txt has runtime dependencies).
-pytest>=7.4,<9
-ruff>=0.5,<1

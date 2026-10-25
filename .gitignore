@@ -4,3 +4,18 @@ __pycache__/
 .env
 .ipynb_checkpoints/
 .vscode/
+# Local backups and generated files
+.road_safety_ai_backups/
+models/backups/
+*.bak
+*.bak-*
+*.pre_*.bak
+
+# Local runtime database
+database.db
+
+# Python environments and cache
+venv/
+.venv/
+__pycache__/
+*.py[cod]
