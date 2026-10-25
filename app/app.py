@@ -1838,7 +1838,7 @@ border-bottom:1px solid rgba(29,42,68,.16);
 padding-bottom:16px;
 margin-bottom:22px;">
     <div>
-        <span style="font-size:28px">ðŸš¦</span>
+        <span style="font-size:28px">🚦</span>
         <span style="font-size:26px;font-weight:800;color:#1D2A44">
             Road Safety AI
         </span>
@@ -1851,7 +1851,7 @@ margin-bottom:22px;">
         padding:7px 12px;
         border-radius:20px;
         color:#1D2A44">
-            â—· {now.strftime('%H:%M:%S')} IST
+            Time: {now.strftime('%H:%M:%S')} IST
         </span>
     </div>
 </div>
