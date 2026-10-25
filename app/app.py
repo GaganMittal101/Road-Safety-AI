@@ -1826,38 +1826,31 @@ def main_app():
 
     @st.fragment(run_every="1s")
     def render_app_header():
-        # Use India Standard Time rather than the Streamlit host's UTC clock.
         now = dt.datetime.now(ZoneInfo("Asia/Kolkata"))
-        st.markdown(
-            f"""
-<div style="
-display:flex;
-justify-content:space-between;
-align-items:center;
-border-bottom:1px solid rgba(29,42,68,.16);
-padding-bottom:16px;
-margin-bottom:22px;">
-    <div>
-        <span style="font-size:28px">🚦</span>
-        <span style="font-size:26px;font-weight:800;color:#1D2A44">
-            Road Safety AI
-        </span>
-    </div>
-    <div style="color:#687184;text-align:right">
-        {now.strftime('%B %d, %Y')}
-        &nbsp;
-        <span style="
-        background:#FFD447;
-        padding:7px 12px;
-        border-radius:20px;
-        color:#1D2A44">
-            Time: {now.strftime('%H:%M:%S')} IST
-        </span>
-    </div>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
+
+        left, right = st.columns([3, 2])
+
+        with left:
+            st.markdown(
+                "<div style='font-size:26px;font-weight:800;color:#1D2A44'>"
+                "🚦 Road Safety AI</div>",
+                unsafe_allow_html=True,
+            )
+
+        with right:
+            st.markdown(
+                f"""
+                <div style="text-align:right;color:#687184">
+                    {now.strftime('%B %d, %Y')}
+                    <span style="display:inline-block;margin-left:8px;
+                        background:#FFD447;padding:7px 12px;
+                        border-radius:20px;color:#1D2A44">
+                        {now.strftime('%H:%M:%S')} IST
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     render_app_header()
 
