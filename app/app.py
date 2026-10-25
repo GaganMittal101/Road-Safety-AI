@@ -9,6 +9,7 @@ import sqlite3
 import sys
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Tuple
+from zoneinfo import ZoneInfo
 
 import joblib
 import numpy as np
@@ -1823,10 +1824,12 @@ def main_app():
     page = render_sidebar(df)
     st.session_state.selected_page = page
 
-    now = dt.datetime.now()
-
-    st.markdown(
-        f"""
+    @st.fragment(run_every="1s")
+    def render_app_header():
+        # Use India Standard Time rather than the Streamlit host's UTC clock.
+        now = dt.datetime.now(ZoneInfo("Asia/Kolkata"))
+        st.markdown(
+            f"""
 <div style="
 display:flex;
 justify-content:space-between;
@@ -1835,12 +1838,12 @@ border-bottom:1px solid rgba(29,42,68,.16);
 padding-bottom:16px;
 margin-bottom:22px;">
     <div>
-        <span style="font-size:28px">🚦</span>
+        <span style="font-size:28px">ðŸš¦</span>
         <span style="font-size:26px;font-weight:800;color:#1D2A44">
             Road Safety AI
         </span>
     </div>
-    <div style="color:#687184">
+    <div style="color:#687184;text-align:right">
         {now.strftime('%B %d, %Y')}
         &nbsp;
         <span style="
@@ -1848,13 +1851,15 @@ margin-bottom:22px;">
         padding:7px 12px;
         border-radius:20px;
         color:#1D2A44">
-            ◷ {now.strftime('%H:%M:%S')}
+            â—· {now.strftime('%H:%M:%S')} IST
         </span>
     </div>
 </div>
 """,
-        unsafe_allow_html=True,
-    )
+            unsafe_allow_html=True,
+        )
+
+    render_app_header()
 
     if page == "Settings":
         state = "All India"
